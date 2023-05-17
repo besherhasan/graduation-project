@@ -1,0 +1,357 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:PatientMonitor/screens/sensor_reading.dart';
+import 'package:PatientMonitor/widgets/patientdata.dart';
+import '../global/global.dart';
+import '../widgets/my_drawer.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<dynamic> _articles = [];
+
+  Future<void> _getMedicalNews() async {
+    final String apiKey = 'ab17571bcb724e389602c92376bb8156';
+    final String apiUrl = 'https://newsapi.org/v2/top-headlines?country=us&category=health&apiKey=$apiKey';
+
+    final response = await http.get(Uri.parse(apiUrl));
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      setState(() {
+        _articles = json['articles'];
+      });
+    } else {
+      throw Exception('Failed to load medical news');
+    }
+  }
+  int _displayText=0 ;
+  final _database = FirebaseDatabase.instance.ref();
+  final items = [
+    "images/img1.png",
+    "images/img2.png",
+    "images/img3.png",
+    "images/img4.png",
+    "images/img5.png",
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+  _activatelinsteners();
+    _getMedicalNews();
+  }
+
+void _activatelinsteners(){
+    _database.child('PatientMonitor/EcgReading').onValue.listen((event) {
+      final int description = event.snapshot.value as int;
+      setState(() {
+        _displayText = description;
+      });
+    });
+}
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: Text('Patient Monitor',style: TextStyle(
+          fontFamily: 'Lobster',
+              color: Colors.black
+
+        ),),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        brightness: Brightness.light,
+        iconTheme: IconThemeData(color: Colors.black),
+        centerTitle: true,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.cyanAccent,
+                Colors.blueAccent,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
+
+        drawer: MyDrawer(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.010,
+        ) ,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            SizedBox(width: MediaQuery.of(context).size.width * 0.05,),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Hello,",style: TextStyle(color: Colors.black,fontSize:16,fontFamily: "Varela")),
+                Text(
+                  "${sharedPreferences!.getString("name")!} 👋🏻",
+                  style: TextStyle(color: Colors.black,fontSize:25,fontFamily: "Varela"),
+                )
+              ],
+            ),
+            SizedBox(width: MediaQuery.of(context).size.width * 0.30,),
+
+            Container(
+              height: 60,
+              width: 60,
+              child:CircleAvatar(
+                backgroundColor: Colors.white,
+                backgroundImage: NetworkImage(
+                    sharedPreferences!.getString("photoUrl")!
+                ),
+              ) ,
+            ),
+            SizedBox(width: MediaQuery.of(context).size.width * 0.05,),
+
+          ],
+        ),
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.010,
+            ) ,
+        CarouselSlider(
+        options: CarouselOptions(
+        autoPlay: true,
+          aspectRatio: 16/9,
+          enlargeCenterPage: true,
+        ),
+        items: items.map((item) {
+          return Builder(
+            builder: (BuildContext context) {
+              return Container(
+                width: MediaQuery.of(context).size.width,
+                margin: EdgeInsets.symmetric(horizontal: 5.0),
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(10.0), // Set circular border radius
+                ),
+                child: ClipRRect( // ClipRRect to clip the image to the border radius
+                  borderRadius: BorderRadius.circular(10.0),
+                  child: Image.asset(item, fit: BoxFit.fill),
+                ),
+              );
+            },
+          );
+        }).toList(),
+      ),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.015,),
+            Row(
+              children: [
+                SizedBox(width: MediaQuery.of(context).size.height * 0.02 ,),
+                Text("Patients",style: TextStyle(fontSize: 18,fontFamily: 'Varela'),),
+                SizedBox(width: MediaQuery.of(context).size.height * 0.001 ,),
+                Icon(Icons.person),
+              ],
+            ),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.015,),
+            Container(
+              height: 150,
+              width: MediaQuery.of(context).size.width,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: <Widget>[
+                  SizedBox(width: 5,),
+                  PatientData(name: "Besher",age: 21, height: 165, weight: 65,phonenumber: "+971 50 1436251",imageurl: "images/besher.jpg",),
+                  SizedBox(width: 40,),
+                  PatientData(name: "Ibrahim",age: 22, height: 175, weight: 75,phonenumber: "+971 50 1436251",imageurl: "images/ibrahim.jpg",),
+                  SizedBox(width: 40,),
+                  PatientData(name: "Ryan",age: 22, height: 170, weight: 68,phonenumber: "+971 50 1436251",imageurl: "images/ryan.jpg",),
+                  SizedBox(width: 5,),
+
+
+
+                ],
+              ),
+            ),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.015,),
+            Row(
+              children: [
+                SizedBox(width: MediaQuery.of(context).size.height * 0.02 ,),
+                Text("News",style: TextStyle(fontSize: 18,fontFamily: 'Varela'),),
+                SizedBox(width: MediaQuery.of(context).size.height * 0.002 ,),
+                Icon(Icons.newspaper_rounded),
+              ],
+            ),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.015,),
+
+            Container(
+
+              height: MediaQuery.of(context).size.height *0.20,
+              width: MediaQuery.of(context).size.width,
+
+              child:_articles.isEmpty
+                  ? Center(child: CircularProgressIndicator()): Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10), // make it circular
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2), // add a shadow color
+                      spreadRadius: 5,
+                      blurRadius: 7,
+                      offset: Offset(0, 1), // changes position of shadow
+                    ),
+                  ],
+
+                ),
+                    child: ListView.builder(
+                itemCount: min(8, _articles.length),
+                itemBuilder: (context, index) {
+                    final article = _articles[index];
+                    return Card(
+
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.blueAccent,
+                              Colors.cyanAccent,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: Image.network(article['urlToImage']),
+                          title: Text(article['title']),
+                          subtitle: Text(article['description']),
+                          onTap: () {
+                            int _selectedIndex=1;;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Scaffold(
+                                  appBar: AppBar(
+                                    leading: IconButton(
+                                      onPressed: () {
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(builder: (c) => HomeScreen()),
+                                        );
+                                      },
+                                      icon: Icon(Icons.arrow_circle_left),
+                                    ),
+                                    iconTheme: IconThemeData(color: Colors.black),
+                                    title: Text("News",style: TextStyle(
+                                      fontFamily: 'Lobster',
+                                      color: Colors.black,
+                                    ),),
+                                    flexibleSpace: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Colors.cyanAccent,
+                                            Colors.blueAccent,
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  body: SingleChildScrollView(
+                                    child: Column(
+                                      children: [
+                                        Image.network(article['urlToImage']),
+                                        Padding(
+                                          padding: const EdgeInsets.all(16.0),
+                                          child: Text(
+                                            article['title'],
+                                            style: TextStyle(
+                                              fontSize: 24.0,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(16.0),
+                                          child: Text(
+                                            article['content'] ?? '',
+                                            style: TextStyle(fontSize: 14.0),
+                                          ),
+
+                                        ),
+                                    GestureDetector(
+                                      child: Text(
+                                        'Click me to open ${article['url']}',
+                                        style: TextStyle(
+                                          color: Colors.blue,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                      onTap: () => launch(article['url']),
+                                    ),
+
+
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+
+                        ),
+                      ),
+                    );
+                },
+              ),
+                  ),
+            ),
+SizedBox(height: 20,),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.blueAccent,
+                    Colors.cyanAccent,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              width: MediaQuery.of(context).size.width,
+              height: 50,
+              child: Center(child: Text("Powered By AU Students",style: TextStyle(fontSize: 10),),),
+            )
+
+
+
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
